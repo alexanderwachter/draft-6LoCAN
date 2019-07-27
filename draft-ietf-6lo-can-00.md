@@ -469,10 +469,12 @@ A 6LoBR is not necessary because there is no routing on 6LoCAN segments. To prov
 Bus segments MUST NOT have more than one translator. The translator has a fixed node address (0x3DF0) and a range of Ethernet MAC addresses.
 Every packet sent to this node address or any multicast address is forwarded to Ethernet. Every Ethernet frame matching the MAC address range and every multicast Ethernet frame is forwarded to the 6LoCAN bus-segment.
 
-For translating a 6LoCAN packet to an Ethernet frame, the source address is extended with the first 34 bits of the translator MAC address and the IPHC compressed headers are decompressed. The destination MAC is carried in-line before the compressed IPv6 header (see (#sec-frame-format), (#fig-frame-format-translator)).
+For translating a 6LoCAN packet to an Ethernet frame, the source address is extended with the first 34 bits of the translator MAC address and the IPHC compressed headers MUST be decompressed. The destination MAC is carried in-line before the compressed IPv6 header (see (#sec-frame-format), (#fig-frame-format-translator)).
+ICMPv6 messages MUST be checked for Link-Layer Address Options (LLAO) and if an LLAO is present, it MUST be changed to the extended link-layer address.
 For translating Ethernet frames to 6LoCAN packets, the source MAC address is carried in-line, the destination node address is the last 14 bits of the MAC address, and the IPv6 headers are compressed using IPHC.
 
-For multicast Ethernet frames, the last 14 bits of the multicast group is the destination address, and the multicast bit is set.
+For multicast Ethernet frames, the last 14 bits of the multicast group is the destination address, and the multicast bit is set. The destination address MAY also be reconstructed fro the destination multicast address.
+Multicast CAN frames can't carry the full Ethernet multicast address. Therefore the destination Ethernet MAC address is reconstructed from the destination IP address.
 
 If the translator includes a network stack, the last 14 bits of it's MAC address MUST be the translator node address (0x3DF0) to avoid address collisions.
 
@@ -534,25 +536,6 @@ The translator MAC address for this example is 02:00:5E:10:3D:F0.
 |0                            7|8                             5|
 +------------------------------+-------------------------------+
 | dest MAC (02:00:5E:10:00:FF) |  src MAC (02:00:5E:10:30:55)  |
-+------------------------------+-------------------------------+
-                          Ethernet MAC
-~~~
-
-This example shows a translation form multicast CAN frame to Ethernet MAC.
-The translator MAC address for this example is 02:00:5E:10:3D:F0.
-
-{#fig-multicast-id-translation}
-~~~
-|0|0            1|1            2|
-|0|1            4|5            8|
-+-+--------------+--------------+
-|1|dest (0x0001) | src (0x3055) |
-+-+--------------+--------------+
-            CAN identifier
-|0                            4|4                             9|
-|0                            7|8                             5|
-+------------------------------+-------------------------------+
-| dest MAC (33:33:00:00:00:01) |  src MAC (02:00:5E:10:30:55)  |
 +------------------------------+-------------------------------+
                           Ethernet MAC
 ~~~
