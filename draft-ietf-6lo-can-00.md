@@ -578,4 +578,9 @@ The translator MAC address for this example is 02:00:5E:10:3D:F0.
 ~~~
 Figure: Example setup with Ethernet Border Translator
 
+# Reference Implementation
+
+As a reference, this standard proposal is implemented in the Zephyrproject-RTOS from version 2.0 ongoing.
+This implementation can be tested with the overlay-6locan.conf on echo_server and echo_client application.
+
 {backmatter}
