@@ -7,7 +7,7 @@ area = "Internet"
 workgroup = "6Lo Working Group"
 submissiontype = "IETF"
 keyword = ["Internet-Draft"]
-date = 2019-08-01T00:00:00Z
+date = 2019-10-15
 
 [seriesInfo]
 status = "standard"
@@ -22,14 +22,14 @@ toc = "yes"
 initials="A."
 surname="Wachter"
 fullname="Alexander Wachter"
-organization = "University of Technology Graz"
+organization = "Graz University of Technology"
   [author.address]
   email = "alexander@wachter.cloud"
 %%%
 
 .# Abstract
 
-Controller Area Network (CAN) is a Fieldbus initially designed for automotive application.
+Controller Area Network (CAN) is a Fieldbus initially designed for automotive applications.
 It is a multi-master bus with 11-bit or 29-bit frame identifiers. The CAN standard (ISO 11898 series) defines the physical and data-link layer.
 This document describes how to transfer IPv6 packets over CAN using ISO-TP, a dedicated addressing schema, and IP header compression (IPHC).
 
@@ -38,15 +38,15 @@ This document describes how to transfer IPv6 packets over CAN using ISO-TP, a de
 # Introduction
 
 Controller Area Network (CAN) is mostly known for its use in the automotive domain.
-However, it is also used in industrial and building automation, for example, heating control or CANopen Fieldbus.
+However, it is also used in industrial and building automation, for example, heating control or CANopen fieldbus.
 
 It is a two-wire wired-AND multi-master bus that uses CSMA/CR in its arbitration field.
 CAN use 11 bit (standard ID) and 29 bit (extended ID) identifiers to identify frames.
-The maximum payload data size is 8 octets for classical and 64 octets for CAN-FD.
+The maximum payload data size is 8 octets for classical CAN and 64 octets for CAN-FD.
 
-The minimal MTU of IPv6 is 1280 octets, and therefore, a mechanism to support larger MTU is needed.
-This document uses a slightly modified version of the ISO-TP protocol to transfer data up to 4096 octets per packet.
-Mapping addresses to identifier uses an addressing schema with a 14-bit source address, a 14-bit destination address, and a multicast bit.
+The minimal MTU of IPv6 is 1280 octets, and therefore, a mechanism to support a larger payload is needed.
+This document uses a slightly modified version of the ISO-TP protocol to transfer data up to 4095 octets per packet.
+Mapping addresses to identifiers uses an addressing schema with a 14-bit source address, a 14-bit destination address, and a multicast bit.
 This schema uses extended identifiers only.
 
 To make data transfer more efficient IPHC [@!RFC6282] is used.
@@ -66,13 +66,13 @@ they appear in all capitals, as shown here.
 ## Controller Area Network Overview
 
 This section provides a brief overview of Controller Area Network (CAN), as specified in [ISO 11898-1:2015].
-CAN use two wires, CAN High and CAN Low, where CAN High is tight to 5V and CAN Low to 0V when transmitting a dominant (0) bit.
+CAN has two wires, CAN High and CAN Low, where CAN High is tied to 5V and CAN Low to 0V when transmitting a dominant (0) bit.
 Both wires are at the same level (approximately 2,5V) when transmitting a recessive (1) bit.
 Because of the wired-AND structure, a dominant bit overrides a recessive bit.
 
 To resolve collisions in the arbitration field, a CAN controller checks for overridden recessive bits.
 The sender that was sending the recessive bit then stops the transmission.
-Therefor an identifier with all zeros has the highest priority.
+Therefore an identifier with all zeros has the highest priority.
 
 CAN controllers are usually able to filter identifiers and only pass the message if a filter matches.
 The identifiers can be masked where the mask defines which bits of the identifier must match and which bits do not care.
@@ -81,7 +81,7 @@ The identifiers can be masked where the mask defines which bits of the identifie
 
 A subset ISO-TP (ISO 15765-2) is used to fragment and reassemble the packets.
 This subset of ISO-TP can send packets with a payload size up to 4095 octets, enough for IPv6 minimum packet size of 1280 octets.
-ISO-TP is designed for CAN, and its small payload data size and therefore preferred over [@!RFC4944] fragmentation.
+ISO-TP is designed for CAN and its small payload data size and therefore preferred over [@!RFC4944] fragmentation.
 
 The 6LoWPAN fragmentation would use more than the halve of the available payload for the fragmentation headers.
 This fact prevents 6LoWPAN fragmentation from being used for 6LoCAN.
@@ -159,15 +159,15 @@ Figure: Multicast identifier example
 
 ## Unicast
 
-For unicast packets, the multicast bit is set to zero and the 14-bit source address is the address of the sender.
+For unicast packets, the multicast bit is set to zero, and the 14-bit source address is the address of the sender.
 The 14-bit destination address of the receiver is discovered by IPv6 NDP defined in [@!RFC4861].
-Every node MUST set a CAN filter that matches its address as a destination address to receive frames targeting this node.
+Every node MUST be able to receive all frames targeting its address as the destination address.
 
 ## Multicast
 
-For multicast packets, the multicast bit is set to one and the 14-bit source address is the address of the sender.
+For multicast packets, the multicast bit is set to one, and the 14-bit source address is the address of the sender.
 The 14-bit destination address is the last 14 bits of the multicast group.
-Every node MUST set CAN filters to match the last 14 bit of the joined multicast groups as the destination address to receive frames targeting this group.
+Every node MUST be able to receive all frames matching the last 14 bit of the joined multicast group as the destination address and the multicast bit set.
 
 ## Address Generation
 
@@ -175,6 +175,52 @@ Every node has a 14-bit address. This address MUST be unique within the CAN bus 
 The address can either be statically defined or assigned randomly.
 For the random address assignment, the node tries randomly chosen addresses until the link-layer duplicate address detection succeeds.
 The link-layer duplicate address detection prevents nodes from assigning an address already in use.
+
+# Link Layer Duplicate Address Detection
+
+This section provides information about how to perform link-layer duplicate address detection (LLDAD).
+
+LLDAD is introduced to prevent collisions of CAN identifiers and make it possible to use random address assignment with only 14-bit address space.
+To perform an LLDAD, a DAD-request is sent. If there is no DAD-response sent back, the DAD is considered successful.
+The node MUST wait for the response for at least 100ms.
+
+DAD-requests are remote transition request frames with the desired address as the destination and 14 bits entropy as the source address.
+The entropy prevents identifier collisions when nodes are trying to get the same address at the same time.
+
+DAD-responses are data-frames sent to the LLDAD address (0x3DFE) with the responder's address as the source address.
+Both DAD-request and DAD-response have a data length of zero.
+
+The node MUST be configured to receive remote transition request frames with the desired address as the destination address before the DAD-request is sent
+and frames with the LLDAD address as long as the LLDAD is in progress.
+The ability to receive remote transition request frames with the desired address as the destination address MUST be kept as long as the node uses the address.
+The response to LLDAD-requests that matches the node address MUST be sent before the requesting node stops waiting for the response, which is 100ms.
+
+
+(#fig-dad-fail) shows a DAD Fail example where node A performs a DAD-request on address 0x3055 where this address is already in use by node B.
+
+{#fig-dad-fail align="center"}
+~~~
+Node A          Node B
+  |--DAD-request->|
+  |               |
+  |<-DAD-response-|
+
+DAD-request identifier:
+This frame is a Remote Transmission Request (RTR)
+|0|0            1|1            2|
+|0|1            4|5            8|
++-+--------------+--------------+
+|0|11000001010101|   entropy    |
++-+--------------+--------------+
+
+DAD-response identifier:
+|0|0            1|1            2|
+|0|1            4|5            8|
++-+--------------+--------------+
+|0|11110111111110|11000001010101|
++-+--------------+--------------+
+~~~
+Figure: DAD Fail example
 
 # Stateless Address Autoconfiguration
 
@@ -210,47 +256,19 @@ The IPv6 link-local address [@!RFC4291] for a 6LoCAN interface is formed by appe
 ~~~
 Figure: Link Local address from IID
 
-# Frame Format {#sec-frame-format}
-
-This section provides information about data arrangement in the frame data field.
-
-{#fig-frame-format}
-~~~
-+----------------------------+-------------------------------------+
-| ISO-TP Header (1-3 octets) | Dispatch + LOWPAN_IPHC (2-3 octets) | 
-+----------------------------+-------------+-----------------------+
-| In-line IPv6 Header Fields (0-38 octets) | Payload 
-+------------------------------------------+----------
-~~~
-Figure: 6LoCAN Frame Format
-
-Packets with a destination or source address of the 0x3DF0 (Translator address) carry the Ethernet MAC address inline directly after the ISO-TP Header.
-For packets going to the translator, it is the destination MAC address, and for packets coming from the translator, it is the source MAC address.
-
-{#fig-frame-format-translator}
-~~~
-+----------------------------+--------------------------------+
-| ISO-TP Header (1-3 octets) | Ethernet MAC Address (48 bits) |
-+----------------------------+-------+------------------------+
-|Dispatch + LOWPAN_IPHC (2-3 octets) |
-+------------------------------------+-----+----------
-| In-line IPv6 Header Fields (0-38 octets) | Payload 
-+------------------------------------------+----------
-~~~
-Figure: 6LoCAN Translator Frame Format
-
 # ISO-TP
 
-This section provides information about the use of ISO-TP in this document.
+This section provides information about the use of ISO-TP (ISO 15765-2) in this document.
 Parts of ISO-TP are used to provide a reliable way for sending up to 4095 octets as a packet.
 It includes a flow-control mechanism for unicast-packets and timeouts.
 
 Multicast packets do not use any flow-control mechanism and are therefore not covered by the ISO-TP standard.
+However, the fragmentation and reassembly mechanism is still used for multicast packets.
 
-ISO-TP defines four different types of frames: Single Frames (SF), First Frames (FF), Consecutive Frames (CF) and Flow Control Frames (FC).
+ISO-TP defines four different types of frames: Single Frames (SF), First Frames (FF), Consecutive Frames (CF), and Flow Control Frames (FC).
 Single frames are used when the payload data size is small enough to fit into a single CAN frame.
 For larger payload data sizes, a First Frame indicates the start of the message, Consecutive frames carry the payload data and Flow Control Frames steer the transmission.
-Network address extension and packet size larger than 4095 octets defined by ISO-TP MUST NOT be used for 6LoCAN.
+Network address extension and packet size larger than 4095 octets defined by ISO 15765-2 MUST NOT be used for 6LoCAN.
 Single Frame packets are only useful for CAN-FD because the eight octets of classical CAN are too small for any IPv6 header.
 
 ## Multicast
@@ -367,7 +385,8 @@ Size
 
 The First-Frame PCI is 1, and the remaining 4-bit nibble of the first byte carries the upper 4-bit nibble of the payload data length.
 The second byte contains the lower byte of the payload data length. The rest of the frame is filled with payload data.
-The first fame MUST have a data length of the maximum CAN data length. For example, classic can has a maximum data length of 8 octets, and therefore six payload bytes are included in the FF.
+The first fame MUST have a data length of the maximum CAN data length.
+For example, classic can has a maximum data length of 8 octets, and therefore six payload bytes are included in the FF.
 
 {#fig-first-frame}
 ~~~
@@ -438,61 +457,49 @@ BS
 ST min
  : Minimal Separation Time
 
-# Link Layer Duplicate Address Detection
+# Frame Format {#sec-frame-format}
 
-This section provides information about how to perform link-layer duplicate address detection (LLDAD).
+This section provides information about data arrangement in the frame data field.
 
-LLDAD is introduced to prevent collisions of CAN identifiers and make it possible to use random address assignment with only 14-bit address space.
-To perform an LLDAD, a DAD-request is sent. If there is no DAD-response sent back within 100 milliseconds, the DAD is considered successful.
-
-DAD-requests are remote transition request frames with the desired address as the destination and 14 bits entropy as the source address. The entropy prevents identifier collisions when nodes are trying to get the same address at the same time.
-
-DAD-responses are data-frames sent to the LLDAD address (0x3DFE) with the responder's address as the source address.
-Both DAD-request and DAD-response have a data length of zero.
-
-A node MUST attach one filter for the LLDAD-response address, and another filter for DAD-requests with the desired address.
-The DAD-response-filter MUST be applied, and the node MUST be ready to answer DAD-request on the desired address before sending the DAD-request.
-The DAD-response-filter MAY be removed after the DAD is successful. The DAD-request filter MUST stay applied, and the node MUST be able to respond within 90 milliseconds as long as it uses this address.
-
-(#fig-dad-fail) shows a DAD Fail example where node A performs a DAD-request on address 0x3055 where this address is already in use by node B.
-
-{#fig-dad-fail align="center"}
+{#fig-frame-format}
 ~~~
-Node A          Node B
-  |--DAD-request->|
-  |               |
-  |<-DAD-response-|
-
-DAD-request identifier:
-This frame is a Remote Transmission Request (RTR)
-|0|0            1|1            2|
-|0|1            4|5            8|
-+-+--------------+--------------+
-|0|11000001010101|   entropy    |
-+-+--------------+--------------+
-
-DAD-response identifier:
-|0|0            1|1            2|
-|0|1            4|5            8|
-+-+--------------+--------------+
-|0|11110111111110|11000001010101|
-+-+--------------+--------------+
++----------------------------+-------------------------------------+
+| ISO-TP Header (1-3 octets) | Dispatch + LOWPAN_IPHC (2-3 octets) | 
++----------------------------+-------------+-----------------------+
+| In-line IPv6 Header Fields (0-38 octets) | Payload 
++------------------------------------------+----------
 ~~~
-Figure: DAD Fail example
+Figure: 6LoCAN Frame Format
+
+Packets with a destination or source address of the 0x3DF0 (Translator address) carry the Ethernet MAC address inline directly after the ISO-TP Header.
+For packets going to the translator, it is the destination MAC address, and for packets coming from the translator, it is the source MAC address.
+
+{#fig-frame-format-translator}
+~~~
++----------------------------+--------------------------------+
+| ISO-TP Header (1-3 octets) | Ethernet MAC Address (48 bits) |
++----------------------------+-------+------------------------+
+|Dispatch + LOWPAN_IPHC (2-3 octets) |
++------------------------------------+-----+----------
+| In-line IPv6 Header Fields (0-38 octets) | Payload 
++------------------------------------------+----------
+~~~
+Figure: 6LoCAN Translator Frame Format
 
 # Ethernet Border Translator
 
 This section provides information about translating 6LoCAN packets to Ethernet frames.
 
-The Ethernet Border Translator connects 6LoCAN bus-segments to other 6LoCAN bus-segments or other technologies.
+The Ethernet Border Translator connects 6LoCAN bus-segments either to other 6LoCAN bus-segments or other technologies.
 Ethernet is a widely used technology that provides enough bandwidth to connect several 6LoCAN segments.
-A 6LoBR is not necessary because there is no routing on 6LoCAN segments.
+A mechanism like the 6LBR is not necessary because there is no routing on 6LoCAN segments.
 To provide routing or switch capabilities, the Ethernet Border Translator connects a 6LoCAN network to such devices via Ethernet.
 
 Bus segments MUST NOT have more than one translator. The translator has a fixed node address (0x3DF0) and a range of Ethernet MAC addresses.
 Every packet sent to this node address or any multicast address is forwarded to Ethernet. Every Ethernet frame matching the MAC address range and every multicast Ethernet frame is forwarded to the 6LoCAN bus-segment.
 
-For translating a 6LoCAN packet to an Ethernet frame, the source address is extended with the first 34 bits of the translator MAC address and the IPHC compressed headers MUST be decompressed. The destination MAC is carried in-line before the compressed IPv6 header (see (#sec-frame-format), (#fig-frame-format-translator)).
+For translating a 6LoCAN packet to an Ethernet frame, the source address is extended with the first 34 bits of the translator MAC address and the IPHC compressed headers MUST be decompressed.
+The destination MAC is carried in-line before the compressed IPv6 header (see (#sec-frame-format), (#fig-frame-format-translator)).
 ICMPv6 messages MUST be checked for Link-Layer Address Options (LLAO), and if an LLAO is present, it MUST be changed to the extended link-layer address.
 For translating Ethernet frames to 6LoCAN packets, the source MAC address is carried in-line, the destination node address is the last 14 bits of the MAC address, and the IPv6 headers are compressed using IPHC.
 
@@ -525,7 +532,8 @@ The translator MAC address for this example is 02:00:5E:10:3D:F0.
 ~~~
 Figure: Example address translation from Ethernet MAC to CAN identifier.
 
-This example shows a translation from multicast Ethernet MAC to CAN identifier. The source MAC address is carried in-line in the CAN frame data.
+This example shows a translation from a multicast Ethernet MAC to CAN identifier.
+The source MAC address is carried in-line in the CAN frame data.
 
 {#fig-multicast-mac-translation}
 ~~~
@@ -545,7 +553,8 @@ This example shows a translation from multicast Ethernet MAC to CAN identifier. 
 ~~~
 Figure: Example address translation from Ethernet to CAN for multicast Frames.
 
-This example shows a translation CAN identifier to Ethernet MAC. The destination (dest) MAC address is carried inline in the CAN frame data.
+This example shows a translation CAN identifier to Ethernet MAC.
+The destination (dest) MAC address is carried inline in the CAN frame data.
 The translator MAC address for this example is 02:00:5E:10:3D:F0.
 
 {#fig-unicast-id-translation}
