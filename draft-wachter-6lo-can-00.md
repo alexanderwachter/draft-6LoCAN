@@ -598,7 +598,7 @@ This document doesn't provide any security mechanisms.
 Traffic on the bus can be intersected, spoofed, or destroyed.
 For confidentiality and integrity, mechanisms like TLS or IPsec need to be applied.
 
-The small 14-bit node address space makes it hard to track nodes globally.
+The small 14-bit node address space makes it hard to track nodes globally and therefore has inherent privacy properties.
 
 # Reference Implementation
 
