@@ -1,7 +1,7 @@
 %%%
 title = "IPv6 over Controller Area Network"
 abbrev = "6LoCAN"
-docName = "draft-ietf-6lo-can-00"
+docName = "draft-wachter-6lo-can-00"
 ipr= "trust200902"
 area = "Internet"
 workgroup = "6Lo Working Group"
@@ -12,7 +12,7 @@ date = 2019-10-15
 [seriesInfo]
 status = "standard"
 name = "Internet-Draft"
-value = "draft-ietf-6lo-can-00"
+value = "draft-wachter-6lo-can-00"
 stream = "IETF"
 
 [pi]
