@@ -7,7 +7,7 @@ area = "Internet"
 workgroup = "6Lo Working Group"
 submissiontype = "IETF"
 keyword = ["Internet-Draft"]
-date = 2019-10-15
+date = 2019-10-17
 
 [seriesInfo]
 status = "standard"
