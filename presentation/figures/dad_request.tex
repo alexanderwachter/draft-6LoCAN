@@ -1,0 +1,13 @@
+\begin{figure}
+	\begin{tikzpicture}[scale=0.35,  every node/.style={scale=0.35},
+		region/.style={
+			rectangle,
+			draw=black,
+			minimum height=1.5cm,
+			font=\huge}]
+
+		\node (mcast) [region, minimum width=1cm] {0};
+		\node (dest) [region, right of=mcast,xshift=6.5cm, minimum width=14cm] {Tentative Address};
+		\node (src) [region, right of=dest,xshift=13cm, minimum width=14cm] {entropy};
+	\end{tikzpicture}
+\end{figure}

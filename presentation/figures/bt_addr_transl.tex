@@ -1,0 +1,20 @@
+\begin{figure}
+	\begin{tikzpicture}[scale=0.35,  every node/.style={scale=0.35},
+		region/.style={
+			rectangle,
+			draw,
+			minimum height=1.5cm}]
+
+		\node (mcast) [region, minimum width=1cm] {0};
+		\node (dest) [region, right of=mcast,xshift=1.5cm, minimum width=4cm] { DEST (0x3DF0)};
+		\node (src) [region, right of=dest,xshift=3cm, minimum width=4cm] {SRC (0x123)};
+		\node (dstmacil) [region, right of=src,xshift=4cm, minimum width=6cm] {Inlined MAC addr};
+
+		\node (dstmac) [region, right of=dstmacil, xshift=10cm, minimum width=7cm] {DST MAC};
+		\node (srcmac) [region, right of=dstmac, xshift=6cm, minimum width=7cm] {SRC MAC (DE:AD:BE:EF:01:23)};
+
+		\draw[thick, ->] (dstmacil.east) -- (dstmac.west) node [midway, above] {Translator};
+		\draw[->] (dstmacil.south) .. controls ++(5cm,-2cm) .. (dstmac.south);
+		\draw[->] (src.north) .. controls ++(7cm,2cm) .. (srcmac.north) node [midway, above] {Extend with Prefix (DE:AD:BE:EF for example)};
+	\end{tikzpicture}
+\end{figure}

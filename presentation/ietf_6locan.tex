@@ -1,0 +1,268 @@
+
+% \documentclass{beamer}
+\documentclass[aspectratio=169]{beamer}
+% \usetheme[institute]{tugraz2013} %\ mit blauem Logo
+\usetheme{tugraz2013} %\ ohne blauem Logo
+% \usetheme[notes]{tugraz2013}
+% \usetheme[minimal]{tugraz2013}
+
+\title[Title]{6LoCAN \\}
+\author{Alexander Wachter}
+\date{\today}
+\institute[Institute of Technical Informatics]{ Institute of Technical Informatics\\ Networked Embedded Systems}
+\instituteurl{www.iti.tugraz.at}
+%\institutelogo{iti.pdf}
+% \additionallogo{institutslogo.pdf}
+
+\usepackage[backend=biber, %% using "biber" to compile references (instead of "biblatex")
+	style=numeric, 
+	backref=true, %% create backlings from references to citations
+	natbib=true, %% offering natbib-compatible commands
+	hyperref=true, %% using hyperref-package references
+	]{biblatex}  %% remove, if using BibTeX instead of biblatex
+
+\addbibresource{references-biblatex.bib}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\titleframe
+
+\begin{frame}
+  \frametitle{Content}
+  \tableofcontents%[hideallsubsections] 
+\end{frame}
+
+\section{Motivation}
+
+\begin{frame}
+	\frametitle{Why do we want IPv6 on a CANbus?}
+	\begin{itemize}
+		\item Technology/Vendor independent
+		\item Lots of application-layer protocols
+		\item Transport Layer Security (TLS)
+		\item Routing and access to the internet
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Why do we want to use CAN for IPv6?}
+	\begin{itemize}
+		\item Broad availability on small and large MCUs
+		\item Cheap and low hardware footprint
+		\item Very robust
+		\item Simple wiring
+		\item Widely used
+	\end{itemize}
+\end{frame}
+
+\section{Introduction}
+\begin{frame}
+	\frametitle{CAN Bus}
+	\begin{minipage}[t]{0.5\textwidth}
+		\begin{itemize}
+			\item Multi-Master with CSMA/CR
+			\item Line topology
+			\item Two-wire bus
+		\end{itemize}
+	\end{minipage}
+	\begin{minipage}[t]{0.4\textwidth}
+		\begin{table}
+			\centering
+			\tiny
+			%\caption{Maximum bus speed}
+			\begin{tabular}{|c|c|} 
+				\hline
+				Bus Lenght & Max. Speed \\ \hline
+				[m]    & [Kbps]     \\
+				\hline
+				\hline
+				40     & 1000       \\ \hline
+				100    & 500        \\ \hline
+				200    & 250        \\ \hline
+				500    & 100        \\ \hline
+				1000   & 50         \\ \hline
+			\end{tabular}
+			\label{tab:bus_speed}	
+		\end{table}
+	\end{minipage}
+	\begin{minipage}[t]{0.05\textwidth}
+		\tiny\cite{TiCANPhy}
+	\end{minipage}
+
+	\vspace{1em}
+	\include{figures/can_wiring}
+\end{frame}
+
+\begin{frame}
+	\frametitle{CAN Frame}
+	\begin{minipage}[t]{0.8\textwidth}
+		\begin{itemize}
+			\item 11-bit or 29-bit Identifier
+			\item Up to 8 bytes payload for Classical CAN
+			\item Up to 64 bytes payload for CAN-FD
+		\end{itemize}
+	\end{minipage}
+	\begin{minipage}[t]{0.1\textwidth}
+		{\tiny\cite{BoschCAN} \cite{BoschCANFD}}
+	\end{minipage}
+
+	\vspace{1.5em}
+	\include{figures/can_frame}
+\end{frame}
+
+\section{Addressing}
+
+\begin{frame}
+	\frametitle{Node-Address}
+	\begin{itemize}
+		\item 14 bits wide
+		\item Randomly or statically assigned
+		\item Must be unique on the bus
+	\end{itemize}
+	\include{figures/can_wiring_addr}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Node-Address to Identifier}
+	\begin{itemize}
+		\item Bit 28 is a Multicast-flag
+		\item Bit 27 down to bit 14 are the Destination Node-Address
+		\item Bit 13 down to bit 0 are the Source Node-Address
+	\end{itemize}
+	\include{figures/address_to_id}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Multicast Identifier}
+	\begin{itemize}
+		\item Multicast-flag is 1
+		\item Destination is the lower 14 bits of the Multicast-group
+	\end{itemize}
+	\include{figures/id_multicast}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Link-Layer DAD}
+	\begin{itemize}
+		\item Send a Remote Transmission Request Frame (RTR).
+			\include{figures/dad_request}
+		\item Wait at least 100ms for a response.
+			\include{figures/dad_response}
+	\end{itemize}	
+\end{frame}
+
+
+\section{Fragmentation, Reassembly and Flow-Control}
+
+\begin{frame}
+	\frametitle{Fragmentation and Reassembly}
+	\begin{itemize}
+		\item The minimal MTU for IPv6 is 1280 bytes
+		\item CAN has 8/64 bytes
+		\item ISO-TP (ISO 15765-2)
+		\item Fragmentation and Reassembly
+		\item Flow-Control (Unicast only)
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\begin{minipage}[t]{0.6\textwidth}
+		\begin{itemize}
+			\item First Frame (FF)
+				\begin{itemize}
+					\item Data Length
+				\end{itemize}
+			\item Flow-Control Frame
+				\begin{itemize}
+					\item Flow State (CTS, WAIT, OVFLW)
+					\item Separation Time Min(ST\textsubscript{min})
+					\item Block Size (BS)
+				\end{itemize}
+			\item Consecutive Frame
+				\begin{itemize}
+					\item Sequence Number
+					\item Data
+				\end{itemize}
+		\end{itemize}
+	\end{minipage}
+	\begin{minipage}[t]{0.39\textwidth}
+		\include{figures/iso_tp_sequence}
+	\end{minipage}
+\end{frame}
+
+\begin{frame}
+	\frametitle{6lo IPHC}
+	\begin{itemize}
+		\item IPv6 header has 40 bytes (six CAN frames)
+		\item To bulky for CAN
+		\item 6lo IPHC for Header Compression
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Frame Format}
+	\include{figures/frame_format}
+\end{frame}
+
+\section{Border Translator}
+\begin{frame}
+	\frametitle{Border Translator}
+	\include{figures/border_translator}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Border Translator}
+	\begin{itemize}
+		\item Fixed Node-Address (0x3DF0)
+		\item Ethernet MAC-Address is inlined
+	\end{itemize}
+	\include{figures/bt_addr_transl}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Border Translator}
+	\begin{itemize}
+		\item Fixed Node-Address (0x3DF0)
+		\item Ethernet MAC-Address is inlined
+	\end{itemize}
+	\include{figures/bt_addr_transl_2}
+\end{frame}
+
+\section{Reference Implementation}
+\begin{frame}
+	\frametitle{Reference Implementation}
+	\begin{minipage}[t]{0.6\textwidth}
+		\begin{itemize}
+			\item Zephyr RTOS (zephyrproject.org)
+			\item Since version 2.0
+		\end{itemize}
+	\end{minipage}
+	\begin{minipage}[t]{0.39\textwidth}
+		\includegraphics[width=0.9\textwidth]{figures/Zephyr-Project.png}
+	\end{minipage}
+\end{frame}
+
+\section{}
+
+\begin{frame}
+	\frametitle{ }
+	\vspace{40pt}
+	{\Huge Thank you. \\ Questions?} \\
+	\vspace{10pt}
+	Please provide feedback. \\
+	\vspace{20pt}
+	https://tools.ietf.org/html/draft-wachter-6lo-can-00 \\
+	https://www.zephyrproject.org/
+\end{frame}
+
+\section{References}
+\begin{frame}
+	\frametitle{References}
+	\printbibliography
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
