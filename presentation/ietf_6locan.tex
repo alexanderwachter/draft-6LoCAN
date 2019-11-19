@@ -1,4 +1,3 @@
-
 % \documentclass{beamer}
 \documentclass[aspectratio=169]{beamer}
 % \usetheme[institute]{tugraz2013} %\ mit blauem Logo
@@ -30,10 +29,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \titleframe
 
-\begin{frame}
-  \frametitle{Content}
-  \tableofcontents%[hideallsubsections] 
-\end{frame}
+%\begin{frame}
+%  \frametitle{Content}
+%  \tableofcontents%[hideallsubsections] 
+%\end{frame}
 
 \section{Motivation}
 
@@ -162,6 +161,7 @@
 	\begin{itemize}
 		\item The minimal MTU for IPv6 is 1280 bytes
 		\item CAN has 8/64 bytes
+		\item 6LoWPAN Fragmentation is to bulky
 		\item ISO-TP (ISO 15765-2)
 		\item Fragmentation and Reassembly
 		\item Flow-Control (Unicast only)
@@ -169,42 +169,11 @@
 \end{frame}
 
 \begin{frame}
-	\begin{minipage}[t]{0.6\textwidth}
-		\begin{itemize}
-			\item First Frame (FF)
-				\begin{itemize}
-					\item Data Length
-				\end{itemize}
-			\item Flow-Control Frame
-				\begin{itemize}
-					\item Flow State (CTS, WAIT, OVFLW)
-					\item Separation Time Min(ST\textsubscript{min})
-					\item Block Size (BS)
-				\end{itemize}
-			\item Consecutive Frame
-				\begin{itemize}
-					\item Sequence Number
-					\item Data
-				\end{itemize}
-		\end{itemize}
-	\end{minipage}
-	\begin{minipage}[t]{0.39\textwidth}
-		\include{figures/iso_tp_sequence}
-	\end{minipage}
-\end{frame}
-
-\begin{frame}
 	\frametitle{6lo IPHC}
 	\begin{itemize}
 		\item IPv6 header has 40 bytes (six CAN frames)
-		\item To bulky for CAN
 		\item 6lo IPHC for Header Compression
 	\end{itemize}
-\end{frame}
-
-\begin{frame}
-	\frametitle{Frame Format}
-	\include{figures/frame_format}
 \end{frame}
 
 \section{Border Translator}
@@ -213,23 +182,7 @@
 	\include{figures/border_translator}
 \end{frame}
 
-\begin{frame}
-	\frametitle{Border Translator}
-	\begin{itemize}
-		\item Fixed Node-Address (0x3DF0)
-		\item Ethernet MAC-Address is inlined
-	\end{itemize}
-	\include{figures/bt_addr_transl}
-\end{frame}
 
-\begin{frame}
-	\frametitle{Border Translator}
-	\begin{itemize}
-		\item Fixed Node-Address (0x3DF0)
-		\item Ethernet MAC-Address is inlined
-	\end{itemize}
-	\include{figures/bt_addr_transl_2}
-\end{frame}
 
 \section{Reference Implementation}
 \begin{frame}
@@ -262,6 +215,56 @@
 \begin{frame}
 	\frametitle{References}
 	\printbibliography
+\end{frame}
+
+\section{Appendix}
+
+\begin{frame}
+	\begin{minipage}[t]{0.6\textwidth}
+		\begin{itemize}
+			\item First Frame (FF)
+				\begin{itemize}
+					\item Data Length
+				\end{itemize}
+			\item Flow-Control Frame
+				\begin{itemize}
+					\item Flow State (CTS, WAIT, OVFLW)
+					\item Separation Time Min(ST\textsubscript{min})
+					\item Block Size (BS)
+				\end{itemize}
+			\item Consecutive Frame
+				\begin{itemize}
+					\item Sequence Number
+					\item Data
+				\end{itemize}
+		\end{itemize}
+	\end{minipage}
+	\begin{minipage}[t]{0.39\textwidth}
+		\include{figures/iso_tp_sequence}
+	\end{minipage}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Frame Format}
+	\include{figures/frame_format}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Border Translator}
+	\begin{itemize}
+		\item Fixed Node-Address (0x3DF0)
+		\item Ethernet MAC-Address is inlined
+	\end{itemize}
+	\include{figures/bt_addr_transl}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Border Translator}
+	\begin{itemize}
+		\item Fixed Node-Address (0x3DF0)
+		\item Ethernet MAC-Address is inlined
+	\end{itemize}
+	\include{figures/bt_addr_transl_2}
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}

@@ -9,5 +9,16 @@
 		\node (mcast) [region, minimum width=1cm] {0};
 		\node (dest) [region, right of=mcast,xshift=6.5cm, minimum width=14cm] {Tentative Address};
 		\node (src) [region, right of=dest,xshift=13cm, minimum width=14cm] {entropy};
+
+		\draw (mcast.north west) -- (src.north east);
+		\draw (mcast.south west) -- (src.south east);
+		\draw (mcast.south west) -- ++(0,2.5cm);
+		\draw (mcast.south east) -- ++(0,2.5cm);
+		\draw (dest.south east) -- ++(0,2.5cm);
+		\draw (src.south east) -- ++(0,2.5cm);
+		\draw[<->] ($(mcast.north west) + (0,0.5cm)$) -- ($(mcast.north east) + (0,0.5cm)$) node[midway, above] {\large 1};
+		\draw[<->] ($(mcast.north east) + (0,0.5cm)$) -- ($(dest.north east) + (0,0.5cm)$) node[midway, above] {\large 14};
+		\draw[<->] ($(dest.north east) + (0,0.5cm)$) -- ($(src.north east) + (0,0.5cm)$) node[midway, above] {\large 14};
+
 	\end{tikzpicture}
 \end{figure}
