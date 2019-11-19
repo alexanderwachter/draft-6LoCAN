@@ -42,6 +42,7 @@ However, it is also used in industrial applications as CANopen, building automat
 
 It is a two-wire wired-AND multi-master bus that uses CSMA/CR in its arbitration field.
 CAN uses 11-bit (standard ID) and 29-bit (extended ID) identifiers to identify frames.
+The arbitration field also incorporates a Remote Transmission Request (RTR), marking a frame as an RTR-frame.
 The maximum payload data size is 8 octets for classical CAN and 64 octets for CAN-FD.
 
 The minimal MTU of IPv6 is 1280 octets, and therefore, a mechanism to support a larger payload is needed.
@@ -69,6 +70,7 @@ This section provides a brief overview of Controller Area Network (CAN), as spec
 CAN has two wires, CAN High and CAN Low, where CAN High is tied to 5V and CAN Low to 0V when transmitting a dominant (0) bit.
 Both wires are at the same level (approximately 2.5V) when transmitting a recessive (1) bit.
 Because of the wired-AND structure, a dominant bit overrides a recessive bit.
+The CAN specification does not define any structure for the identifier.
 
 To resolve collisions in the arbitration field, a CAN controller checks for overridden recessive bits.
 The sender that was sending the recessive bit then stops the transmission.
@@ -93,6 +95,7 @@ This section provides information about the 14-bit node address to CAN identifie
 Because CAN uses identifiers to identify the frame's content, an addressing scheme is introduced to map node addresses to identifiers.
 Every node has a unique 14-bit address. This address is assigned either statically or randomly.
 The addressing scheme uses the 29-bit extended identifier only. It is a combination of a source address, a destination address, and a multicast bit.
+The multicast bit is at the highest bit-position, which causes the multicast traffic to have the lowest priority on the bus.
 
 The address 0x3DFE is reserved for link-layer duplicate address detection, and address 0x3DF0 is reserved for the Ethernet border translator.
 Addresses from 0x0100 to 0x3DEF are used as node addresses.
@@ -229,7 +232,7 @@ It is RECOMMENDED to form an IID derived from the node's address. IIDs generated
 However, IIDs MAY also be generated from other sources.
 The general procedure for creating an IID is described in Appendix A of [@!RFC4291], "Creating Modified EUI-64 Format Interface Identifiers", as updated by [@!RFC7136].
 
-The Interface Identifier for link-local addresses SHOULD be formed by concatenating the node's 14-bit address to the six octets 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x00 and two bits 0b00.
+The Interface Identifier for link-local addresses SHOULD be formed by taking the node address and zero fill it to the left.
 For example, an address of hexadecimal value 0x3AAF results in the following IID:
 
 {#fig-generate-iid}
@@ -237,7 +240,7 @@ For example, an address of hexadecimal value 0x3AAF results in the following IID
 |0              1|1              3|3              4|4              6|
 |0              5|6              1|2              7|8              3|
 +----------------+----------------+----------------+----------------+
-|0000000000000000|0000000011111111|1111111000000000|0011101010101111|
+|0000000000000000|0000000000000000|0000000000000000|0011101010101111|
 +----------------+----------------+----------------+----------------+
 ~~~
 Figure: IID from Address 0x3AAF
@@ -268,7 +271,8 @@ ISO-TP defines four different types of frames: Single-Frames (SF), First-Frames 
 Single-Frames are used when the payload data size is small enough to fit into a single CAN frame.
 For larger payload data sizes, a First-Frame indicates the start of the message, Consecutive-Frames carry the payload data and Flow Control Frames steer the transmission.
 Network address extension and packet size larger than 4095 octets defined by ISO 15765-2 MUST NOT be used for 6LoCAN.
-Single-Frame packets are only useful for CAN-FD because the eight octets of classical CAN are too small for any IPv6 header.
+Only CAN-FD Single-Frame packets are useful due to their payload size of up to 64 octets.
+Eight octet payload of classical CAN is too small to carry any IPv6 headers.
 
 ## Multicast
 
@@ -306,6 +310,7 @@ The block size (BS) defines how many frames are transmitted before the sender MU
 A zero BS is allowed and denotes that the sender MUST NOT wait for another FC Frame.
 ST min defines the minimal pause between the end of the previous frame and the start of the next frame.
 The receiver MAY change BS and ST min for following FC Frames.
+It is RECOMMENDED to use a BS and ST min of zero if the node is capable of handling the load.
 
 The receiver MUST answer a FF within 1 second. After this timeout the sender SHOULD abort and stop waiting for an FC frame.
 CF frames MUST have a separation time less than or equal to one second. After this timeout, a receiver SHOULD abort and stop waiting for CF.
@@ -460,6 +465,10 @@ ST min
 
 This section provides information about data arrangement in the frame data field.
 
+The first byte(s) of the CAN frames always contains the ISO-TP header.
+For the first frame, the ISO-TP header is followed by the IPHC and in-line header fields.
+The IPHC and in-line might be spread over several frames. The payload data follows directly after.
+
 {#fig-frame-format}
 ~~~
 +----------------------------+-------------------------------------+
@@ -498,10 +507,12 @@ Bus segments MUST NOT have more than one translator. The translator has a fixed 
 Every packet sent to this node address or any multicast address is forwarded to Ethernet.
 Every Ethernet frame matching the MAC address range and every multicast Ethernet frame is forwarded to the 6LoCAN bus-segment.
 
-For translating a 6LoCAN packet to an Ethernet frame, the source address is extended with the first 34 bits of the translator MAC address and the IPHC compressed headers are decompressed.
+For translating a 6LoCAN packet to an Ethernet frame, the source address is extended with a 34 bits MAC address prefix, and the IPHC compressed headers are decompressed. The 34 bits prefix MUST be chosen in a way that the resulting 48-bit MAC address forms a locally administered address that is unique on the link.
 The destination MAC is carried in-line before the compressed IPv6 header (see (#sec-frame-format), (#fig-frame-format-translator)).
 ICMPv6 messages MUST be checked for Link-Layer Address Options (LLAO), and if an LLAO is present, it MUST be changed to the extended link-layer address.
 For translating Ethernet frames to 6LoCAN packets, the source MAC address is carried in-line, the destination node address is the last 14 bits of the MAC address, and the IPv6 headers are compressed using IPHC.
+
+The Neighbor Caches of the networking stack must be able to store link-layer addresses with a size of 14 and 48 bits.
 
 For multicast Ethernet frames, the last 14 bits of the multicast group is the destination address, and the multicast bit is set. The destination address MAY also be reconstructed from the destination multicast address.
 The destination Ethernet MAC address is formed from the destination IP address as described in [@!RFC2464] section 7.
@@ -513,7 +524,7 @@ The translator MAY use the extended MAC address that corresponds to the translat
 
 (#fig-unicast-mac-translation) shows a translation from Ethernet MAC to CAN identifier.
 The source (src) MAC address is carried in-line in the CAN frame data.
-The translator MAC address for this example is 02:00:5E:10:3D:F0.
+The MAC address prefix for this example is 02:00:5E:10:00.
 
 {#fig-unicast-mac-translation}
 ~~~
@@ -556,7 +567,7 @@ Figure: Example address translation from Ethernet to CAN for multicast Frames.
 
 (#fig-unicast-id-translation) shows a translation CAN identifier to Ethernet MAC.
 The destination (dest) MAC address is carried inline in the CAN frame data.
-The translator MAC address for this example is 02:00:5E:10:3D:F0.
+The MAC address prefix for this example is 02:00:5E:10:00.
 
 {#fig-unicast-id-translation}
 ~~~
